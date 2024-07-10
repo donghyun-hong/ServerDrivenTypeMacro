@@ -25,7 +25,6 @@ final class ServerDrivenTypeTests: XCTestCase {
             """,
             expandedSource:
             """
-            
             enum EntityViewTypeV2: Decodable, Hashable {
                 case unknown(string: String)
                 case oneColumnProductCardWithLongTitle
@@ -62,7 +61,6 @@ final class ServerDrivenTypeTests: XCTestCase {
             """,
             expandedSource:
             """
-            
             enum EntityViewTypeV2: Decodable, Hashable {
                 case oneColumnProductCardWithLongTitle
                 case carouselSmallProductCard
@@ -96,12 +94,11 @@ final class ServerDrivenTypeTests: XCTestCase {
             """,
             expandedSource:
             """
-            
             struct ABCD {
             }
             """,
             diagnostics: [
-                DiagnosticSpec(message: "enum 에만 적용 가능", line: 1, column: 1)
+                DiagnosticSpec(message: "ServerDrivenTypeMacro can only be applied to enums.", line: 1, column: 1)
             ],
             macros: testMacros
         )
@@ -117,13 +114,12 @@ final class ServerDrivenTypeTests: XCTestCase {
             """,
             expandedSource:
             """
-            
             enum ABCD {
                 case oneColumnProductCardWithLongTitle
             }
             """,
             diagnostics: [
-                DiagnosticSpec(message: "unknown case 가 없음", line: 1, column: 1)
+                DiagnosticSpec(message: "unknown case must be defined.", line: 3, column: 5)
             ],
             macros: testMacros
         )
@@ -140,14 +136,13 @@ final class ServerDrivenTypeTests: XCTestCase {
             """,
             expandedSource:
             """
-            
             enum ABCD {
                 case oneColumnProductCardWithLongTitle
                 case unknown(foo: String, bar: String)
             }
             """,
             diagnostics: [
-                DiagnosticSpec(message: "unknown case 의 파라미터가 2개 이상임", line: 1, column: 1)
+                DiagnosticSpec(message: "unknown case must have a single parameter.", line: 4, column: 10)
             ],
             macros: testMacros
         )
@@ -164,14 +159,13 @@ final class ServerDrivenTypeTests: XCTestCase {
             """,
             expandedSource:
             """
-            
             enum ABCD {
                 case oneColumnProductCardWithLongTitle
                 case unknown(int: Int)
             }
             """,
             diagnostics: [
-                DiagnosticSpec(message: "unknown case 파라미터 타입이 String 이 아님", line: 1, column: 1)
+                DiagnosticSpec(message: "The parameter of unknownCase must be of type String.", line: 4, column: 18)
             ],
             macros: testMacros
         )

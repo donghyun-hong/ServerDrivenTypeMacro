@@ -10,7 +10,8 @@ public struct ServerDrivenTypeMacro: MemberMacro {
         in context: some SwiftSyntaxMacros.MacroExpansionContext
     ) throws -> [SwiftSyntax.DeclSyntax] {
         guard let enumDecl = declaration.as(EnumDeclSyntax.self) else {
-            throw "enum 에만 적용 가능"
+            context.diagnose(ServerDrivenTypeMacroDiagnostic.invalidType.diagnose(at: declaration))
+            return []
         }
         let cases = enumDecl.memberBlock.members.compactMap {
             $0.decl.as(EnumCaseDeclSyntax.self)
@@ -18,7 +19,9 @@ public struct ServerDrivenTypeMacro: MemberMacro {
         let names = cases
             .flatMap(\.elements)
             .map(\.name.text)
-        let unknownCaseLiteral = try parseUnknownCase(in: cases)
+        guard let unknownCaseLiteral = parseUnknownCase(in: cases, context: context) else {
+            return []
+        }
         let convertedNames = names.compactMap { name -> (String, String)? in
             guard name != "unknown",
                   let convertedName = name.snakeCased()?.uppercased() else {
@@ -47,17 +50,23 @@ public struct ServerDrivenTypeMacro: MemberMacro {
         return [DeclSyntax(initializer)]
     }
     
-    private static func parseUnknownCase(in cases: [EnumCaseDeclSyntax]) throws -> String {
+    private static func parseUnknownCase(in cases: [EnumCaseDeclSyntax], context: some SwiftSyntaxMacros.MacroExpansionContext) -> String? {
+        guard cases.count > 0 else {
+            return nil
+        }
         let unknownCase = cases.flatMap(\.elements).first { $0.name.text == "unknown" }
         guard let unknownCase else {
-            throw "unknown case 가 없음"
+            context.diagnose(ServerDrivenTypeMacroDiagnostic.missingUnknownCase.diagnose(at: cases.first!))
+            return nil
         }
         if let unknownCaseParameterCount = unknownCase.parameterClause?.parameters.count, unknownCaseParameterCount > 1 {
-            throw "unknown case 의 파라미터가 2개 이상임"
+            context.diagnose(ServerDrivenTypeMacroDiagnostic.tooManyParametersInUnknownCase.diagnose(at: unknownCase))
+            return nil
         }
         if let unknownCaseParameter = unknownCase.parameterClause?.parameters.first,
            unknownCaseParameter.type.as(IdentifierTypeSyntax.self)?.name.text != "String" {
-            throw "unknown case 파라미터 타입이 String 이 아님"
+            context.diagnose(ServerDrivenTypeMacroDiagnostic.invalidParameterTypeInUnknownCase.diagnose(at: unknownCaseParameter))
+            return nil
         }
         let unknownCaseLiteral = if let argumentLabel = unknownCase.parameterClause?.parameters.first?.firstName?.text {
             """
@@ -79,20 +88,4 @@ struct ServerDrivenTypePlugin: CompilerPlugin {
     let providingMacros: [Macro.Type] = [
         ServerDrivenTypeMacro.self
     ]
-}
-
-import Foundation
-
-extension String: LocalizedError {
-    public var errorDescription: String? { self }
-}
-
-extension String {
-  func snakeCased() -> String? {
-    let pattern = "([a-z0-9])([A-Z])"
-
-    let regex = try? NSRegularExpression(pattern: pattern, options: [])
-    let range = NSRange(location: 0, length: count)
-    return regex?.stringByReplacingMatches(in: self, options: [], range: range, withTemplate: "$1_$2").lowercased()
-  }
 }
