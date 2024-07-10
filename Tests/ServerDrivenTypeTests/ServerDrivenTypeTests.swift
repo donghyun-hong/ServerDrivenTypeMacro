@@ -165,7 +165,7 @@ final class ServerDrivenTypeTests: XCTestCase {
             }
             """,
             diagnostics: [
-                DiagnosticSpec(message: "The parameter of unknownCase must be of type String.", line: 4, column: 18)
+                DiagnosticSpec(message: "The parameter of unknown case must be of type String.", line: 4, column: 18)
             ],
             macros: testMacros
         )
